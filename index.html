@@ -196,7 +196,42 @@ input, select, textarea { font-family: inherit; }
 .c-legs  { --c1: #7f1d1d; --c2: #dc2626; }
 .c-upper { --c1: #1e3a5f; --c2: #3b82f6; }
 .c-lrun  { --c1: #78350f; --c2: #d97706; }
-@media (max-width: 380px) { .run-grid { grid-template-columns: 1fr 1fr; } }
+/* ── Nutrition ── */
+.nutr-card { margin: .75rem; background: var(--surf); border-radius: 12px; padding: 1.1rem 1.25rem; }
+.nutr-card h3 { font-size: .95rem; font-weight: 600; margin-bottom: .75rem; }
+.nutr-top { display: grid; grid-template-columns: 1fr 1fr auto; gap: .75rem; align-items: end; }
+.nutr-field label { display: block; font-size: .65rem; color: var(--muted); margin-bottom: .25rem; }
+.nutr-field input {
+  width: 100%; background: var(--surf2); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); padding: .55rem .4rem; font-size: .88rem; text-align: center;
+}
+.nutr-field input[readonly] { opacity: .6; }
+.water-label { font-size: .65rem; color: var(--muted); margin-bottom: .25rem; }
+.water-row { display: flex; gap: .3rem; align-items: center; padding: .35rem 0; }
+.water-dot {
+  width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border);
+  transition: .15s; cursor: pointer; flex-shrink: 0;
+}
+.water-dot.filled { background: var(--teal); border-color: var(--teal); }
+.meal-list { margin-top: .75rem; border-top: 1px solid var(--border); padding-top: .5rem; }
+.meal-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .3rem 0; font-size: .82rem;
+}
+.meal-name { flex: 1; font-weight: 500; }
+.meal-macros { color: var(--muted); font-size: .72rem; margin-right: .3rem; }
+.meal-del { background: none; color: var(--muted); font-size: .7rem; padding: .2rem .35rem; border-radius: 4px; }
+.meal-del:hover { color: var(--red); }
+.btn-add-meal {
+  background: var(--surf2); color: var(--text); border-radius: 8px;
+  padding: .32rem .7rem; font-size: .8rem; font-weight: 600; margin-top: .5rem;
+}
+.nutr-sum {
+  display: flex; gap: .75rem; margin-top: .5rem; padding-top: .5rem;
+  border-top: 1px solid var(--border); font-size: .78rem; color: var(--muted);
+}
+.nutr-sum strong { color: var(--text); }
+@media (max-width: 380px) { .run-grid { grid-template-columns: 1fr 1fr; } .nutr-top { grid-template-columns: 1fr 1fr; } }
 </style>
 </head>
 <body>
@@ -381,6 +416,22 @@ const DB = {
       }
     }
     return out.sort((a, b) => a.date.localeCompare(b.date));
+  },
+  saveNutrition(k, nutr) {
+    const l = this.getLog(k); l.nutrition = nutr; this.save(k, l);
+  },
+  nutrHistory() {
+    const out = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key.startsWith('log_')) continue;
+      const log = JSON.parse(localStorage.getItem(key));
+      const n = log.nutrition;
+      if (n && (n.calories || n.protein)) {
+        out.push({ date: key.slice(4), cal: n.calories||0, pro: n.protein||0, water: n.water||0 });
+      }
+    }
+    return out.sort((a, b) => a.date.localeCompare(b.date));
   }
 };
 
@@ -447,6 +498,9 @@ function today(w, cw, k, log) {
     if (w.core) o += checkBlock(k, log, 'core', '10 min of Core', 'Planks, hollow holds, dead bugs…');
     if (w.yoga) o += checkBlock(k, log, 'yoga', '30 min of Yoga', 'Stretch, recover, cool down');
   }
+
+  // Nutrition section — every day
+  o += nutritionSection(k, log);
 
   o += `<div class="sec">Notes</div>
     <div class="notes-wrap">
@@ -530,6 +584,69 @@ function checkBlock(k, log, id, label, sub) {
   </div>`;
 }
 
+// ── NUTRITION ──────────────────────────────────
+function nutritionSection(k, log) {
+  const n = log.nutrition || { calories: null, protein: null, water: 0, meals: [], manualTotals: true };
+  const meals = n.meals || [];
+  const hasMeals = meals.length > 0;
+  const sumCal = hasMeals ? meals.reduce((a, m) => a + (m.cal || 0), 0) : 0;
+  const sumPro = hasMeals ? meals.reduce((a, m) => a + (m.pro || 0), 0) : 0;
+  const dispCal = n.manualTotals ? (n.calories || '') : (hasMeals ? sumCal : (n.calories || ''));
+  const dispPro = n.manualTotals ? (n.protein || '') : (hasMeals ? sumPro : (n.protein || ''));
+  const isReadonly = !n.manualTotals && hasMeals;
+  const showMealForm = S.form === '_meal';
+
+  let o = `<div class="sec">Nutrition</div><div class="nutr-card"><h3>🥗 Nutrition</h3>`;
+
+  // Top row: calories, protein, water
+  o += `<div class="nutr-top">
+    <div class="nutr-field"><label>Calories</label>
+      <input id="ncal" type="number" value="${dispCal}" placeholder="—" inputmode="numeric" ${isReadonly?'readonly':''}></div>
+    <div class="nutr-field"><label>Protein (g)</label>
+      <input id="npro" type="number" value="${dispPro}" placeholder="—" inputmode="numeric" ${isReadonly?'readonly':''}></div>
+    <div>
+      <div class="water-label">Water</div>
+      <div class="water-row">${Array.from({length:8},(_,i)=>
+        `<div class="water-dot${i<(n.water||0)?' filled':''}" data-a="water" data-i="${i}"></div>`
+      ).join('')}</div>
+    </div>
+  </div>`;
+
+  // Meal list
+  if (hasMeals) {
+    o += `<div class="meal-list">`;
+    meals.forEach((m, i) => {
+      const parts = [m.cal ? m.cal+'cal' : '', m.pro ? m.pro+'g' : ''].filter(Boolean).join(' · ');
+      o += `<div class="meal-row">
+        <span class="meal-name">${m.name}</span>
+        <span class="meal-macros">${parts}</span>
+        <button class="meal-del" data-a="del-meal" data-i="${i}">✕</button>
+      </div>`;
+    });
+    o += `</div>`;
+  }
+
+  // Add meal button or inline form
+  if (showMealForm) {
+    o += `<div class="log-form" style="margin-top:.5rem;border-top:${hasMeals?'none':'1px solid var(--border)'}">
+      <div><label>Meal</label><input id="mn" type="text" placeholder="Lunch" style="width:100px"></div>
+      <div><label>Cal</label><input id="mc" type="number" placeholder="500" inputmode="numeric" style="width:65px"></div>
+      <div><label>Protein</label><input id="mp" type="number" placeholder="30" inputmode="numeric" style="width:55px"></div>
+      <button class="btn-log" data-a="log-meal">Add</button>
+    </div>`;
+  } else {
+    o += `<button class="btn-add-meal" data-a="form" data-ex="_meal">+ Add Meal</button>`;
+  }
+
+  // Summary when meals exist and totals are auto-summed
+  if (hasMeals && !n.manualTotals) {
+    o += `<div class="nutr-sum"><span><strong>${sumCal}</strong> cal total</span><span><strong>${sumPro}g</strong> protein total</span></div>`;
+  }
+
+  o += `</div>`;
+  return o;
+}
+
 // ── HISTORY ────────────────────────────────────
 function history() {
   const logs = DB.allLogs();
@@ -547,6 +664,10 @@ function history() {
     if (setsN)   parts.push(`${setsN} sets`);
     if (hasRun)  parts.push(`${log.run.d||'?'}mi run`);
     if (checks)  parts.push(`${checks} done`);
+    if (log.nutrition) {
+      if (log.nutrition.calories) parts.push(`${log.nutrition.calories} cal`);
+      if (log.nutrition.protein)  parts.push(`${log.nutrition.protein}g pro`);
+    }
     o += `<div class="hist-item" data-a="goto" data-ds="${d}">
       <div class="hist-date">${dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</div>
       <div class="hist-theme">${w.icon} ${w.theme}${wd?`<span class="wk">· ${wd.title}</span>`:''}</div>
@@ -565,31 +686,66 @@ function progress() {
   });
   const exList = [...allEx].sort();
   if (!S.progEx && exList.length) S.progEx = exList[0];
-  const hist = S.progEx ? DB.exHistory(S.progEx) : [];
+  const isNutr = S.progEx === '__cal' || S.progEx === '__pro';
   let o = `<div class="prog-wrap">
     <select class="ex-sel" data-a="sel-ex">
+      <option value="__cal"${S.progEx==='__cal'?' selected':''}>📊 Calories (daily)</option>
+      <option value="__pro"${S.progEx==='__pro'?' selected':''}>📊 Protein (daily)</option>
+      <option disabled>──────────</option>
       ${exList.map(e=>`<option value="${e}"${e===S.progEx?' selected':''}>${e}</option>`).join('')}
     </select>`;
-  if (!hist.length) {
-    o += `<div class="empty"><div class="ei">📈</div><p>No data yet for<br><strong>${S.progEx}</strong></p></div>`;
+
+  if (isNutr) {
+    // Nutrition trend chart
+    const nHist = DB.nutrHistory();
+    const field = S.progEx === '__cal' ? 'cal' : 'pro';
+    const label = S.progEx === '__cal' ? 'Calories' : 'Protein (g)';
+    if (!nHist.length) {
+      o += `<div class="empty"><div class="ei">📈</div><p>No nutrition data logged yet</p></div>`;
+    } else {
+      const maxVal = Math.max(...nHist.map(h => h[field]));
+      const chartData = nHist.map(h => ({ date: h.date, maxW: h[field] }));
+      o += `<div class="chart-box"><div class="clabel">${label}</div>${svgChart(chartData, maxVal)}</div>
+      <div class="prog-entries">
+        ${nHist.slice().reverse().map((h,i)=>{
+          const dt = new Date(h.date+'T12:00:00');
+          return `<div class="prog-entry">
+            <div>
+              <div style="font-size:.78rem">${h.cal} cal · ${h.pro}g pro · ${h.water} water</div>
+              <div class="pd">${dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+            </div>
+            <div style="text-align:right">
+              <div class="pw">${h[field]}${field==='pro'?'g':''}</div>
+              ${i===0?'<div class="pnew">LATEST</div>':''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
   } else {
-    const maxW = Math.max(...hist.map(h=>h.maxW));
-    o += `<div class="chart-box"><div class="clabel">Max Weight (lbs)</div>${svgChart(hist,maxW)}</div>
-    <div class="prog-entries">
-      ${hist.slice().reverse().map((h,i)=>{
-        const dt = new Date(h.date+'T12:00:00');
-        return `<div class="prog-entry">
-          <div>
-            <div>${h.sets.map((s,j)=>`<span style="font-size:.78rem;margin-right:.4rem">S${j+1}: ${s.w?s.w+'lb × ':''}${s.r}</span>`).join('')}</div>
-            <div class="pd">${dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
-          </div>
-          <div style="text-align:right">
-            ${h.maxW>0?`<div class="pw">${h.maxW} lbs</div>`:''}
-            ${i===0?'<div class="pnew">LATEST</div>':''}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
+    // Exercise progress chart (existing)
+    const hist = S.progEx ? DB.exHistory(S.progEx) : [];
+    if (!hist.length) {
+      o += `<div class="empty"><div class="ei">📈</div><p>No data yet for<br><strong>${S.progEx}</strong></p></div>`;
+    } else {
+      const maxW = Math.max(...hist.map(h=>h.maxW));
+      o += `<div class="chart-box"><div class="clabel">Max Weight (lbs)</div>${svgChart(hist,maxW)}</div>
+      <div class="prog-entries">
+        ${hist.slice().reverse().map((h,i)=>{
+          const dt = new Date(h.date+'T12:00:00');
+          return `<div class="prog-entry">
+            <div>
+              <div>${h.sets.map((s,j)=>`<span style="font-size:.78rem;margin-right:.4rem">S${j+1}: ${s.w?s.w+'lb × ':''}${s.r}</span>`).join('')}</div>
+              <div class="pd">${dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+            </div>
+            <div style="text-align:right">
+              ${h.maxW>0?`<div class="pw">${h.maxW} lbs</div>`:''}
+              ${i===0?'<div class="pnew">LATEST</div>':''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
   }
   return o + '</div>';
 }
@@ -696,6 +852,72 @@ function bind() {
   // progress exercise select
   const sel = document.querySelector('[data-a="sel-ex"]');
   if (sel) sel.addEventListener('change', () => { S.progEx = sel.value; render(); });
+
+  // ── Nutrition events ──
+
+  // Calorie/protein manual input (debounced)
+  ['ncal','npro'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el.readOnly) {
+      let t;
+      el.addEventListener('input', () => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          const k = ds(S.date), l = DB.getLog(k);
+          const n = l.nutrition || { calories:null, protein:null, water:0, meals:[], manualTotals:true };
+          if (id==='ncal') n.calories = el.value ? parseInt(el.value) : null;
+          if (id==='npro') n.protein = el.value ? parseInt(el.value) : null;
+          n.manualTotals = true;
+          l.nutrition = n; DB.save(k, l);
+        }, 400);
+      });
+    }
+  });
+
+  // Water dots
+  $('[data-a="water"]').forEach(dot => dot.addEventListener('click', () => {
+    if (!dot.dataset.i && dot.dataset.i !== '0') return; // skip parent row
+    const k = ds(S.date), l = DB.getLog(k);
+    const n = l.nutrition || { calories:null, protein:null, water:0, meals:[], manualTotals:true };
+    const tapped = parseInt(dot.dataset.i) + 1;
+    n.water = (n.water === tapped) ? tapped - 1 : tapped;
+    l.nutrition = n; DB.save(k, l); render();
+  }));
+
+  // Log meal
+  const logMeal = document.querySelector('[data-a="log-meal"]');
+  if (logMeal) logMeal.addEventListener('click', () => {
+    const name = document.getElementById('mn')?.value?.trim() || '';
+    if (!name) return;
+    const cal = parseInt(document.getElementById('mc')?.value) || 0;
+    const pro = parseInt(document.getElementById('mp')?.value) || 0;
+    const k = ds(S.date), l = DB.getLog(k);
+    const n = l.nutrition || { calories:null, protein:null, water:0, meals:[], manualTotals:true };
+    n.meals = n.meals || [];
+    n.meals.push({ name, cal, pro, ts: Date.now() });
+    // Auto-sum from meals
+    n.manualTotals = false;
+    n.calories = n.meals.reduce((a,m) => a + (m.cal||0), 0);
+    n.protein = n.meals.reduce((a,m) => a + (m.pro||0), 0);
+    l.nutrition = n; DB.save(k, l); S.form = null; render();
+  });
+
+  // Enter on meal protein → submit
+  const mp = document.getElementById('mp');
+  if (mp) mp.addEventListener('keydown', e => { if (e.key==='Enter') document.querySelector('[data-a="log-meal"]')?.click(); });
+
+  // Delete meal
+  $('[data-a="del-meal"]').forEach(btn => btn.addEventListener('click', () => {
+    const k = ds(S.date), l = DB.getLog(k);
+    if (l.nutrition && l.nutrition.meals) {
+      l.nutrition.meals.splice(parseInt(btn.dataset.i), 1);
+      if (!l.nutrition.manualTotals) {
+        l.nutrition.calories = l.nutrition.meals.reduce((a,m) => a + (m.cal||0), 0);
+        l.nutrition.protein = l.nutrition.meals.reduce((a,m) => a + (m.pro||0), 0);
+      }
+      DB.save(k, l); render();
+    }
+  }));
 }
 
 // ═══════════════════════════════════════════════
