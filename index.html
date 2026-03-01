@@ -199,13 +199,14 @@ input, select, textarea { font-family: inherit; }
 /* ── Nutrition ── */
 .nutr-card { margin: .75rem; background: var(--surf); border-radius: 12px; padding: 1.1rem 1.25rem; }
 .nutr-card h3 { font-size: .95rem; font-weight: 600; margin-bottom: .75rem; }
-.nutr-top { display: grid; grid-template-columns: 1fr 1fr auto; gap: .75rem; align-items: end; }
+.nutr-top { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; align-items: end; }
 .nutr-field label { display: block; font-size: .65rem; color: var(--muted); margin-bottom: .25rem; }
 .nutr-field input {
   width: 100%; background: var(--surf2); border: 1px solid var(--border); border-radius: 8px;
   color: var(--text); padding: .55rem .4rem; font-size: .88rem; text-align: center;
 }
 .nutr-field input[readonly] { opacity: .6; }
+.water-wrap { margin-top: .6rem; }
 .water-label { font-size: .65rem; color: var(--muted); margin-bottom: .25rem; }
 .water-row { display: flex; gap: .3rem; align-items: center; padding: .35rem 0; }
 .water-dot {
@@ -219,7 +220,7 @@ input, select, textarea { font-family: inherit; }
   padding: .3rem 0; font-size: .82rem;
 }
 .meal-name { flex: 1; font-weight: 500; }
-.meal-macros { color: var(--muted); font-size: .72rem; margin-right: .3rem; }
+.meal-macros { color: var(--muted); font-size: .7rem; margin-right: .3rem; }
 .meal-del { background: none; color: var(--muted); font-size: .7rem; padding: .2rem .35rem; border-radius: 4px; }
 .meal-del:hover { color: var(--red); }
 .btn-add-meal {
@@ -227,10 +228,41 @@ input, select, textarea { font-family: inherit; }
   padding: .32rem .7rem; font-size: .8rem; font-weight: 600; margin-top: .5rem;
 }
 .nutr-sum {
-  display: flex; gap: .75rem; margin-top: .5rem; padding-top: .5rem;
-  border-top: 1px solid var(--border); font-size: .78rem; color: var(--muted);
+  display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .5rem; padding-top: .5rem;
+  border-top: 1px solid var(--border); font-size: .75rem; color: var(--muted);
 }
 .nutr-sum strong { color: var(--text); }
+/* ── Food search / meal form ── */
+.meal-form {
+  margin-top: .5rem; padding: .75rem 1rem;
+  border-top: 1px solid var(--border); background: var(--surf3);
+  border-radius: 0 0 12px 12px;
+}
+.mf-row { display: flex; gap: .5rem; align-items: flex-end; margin-bottom: .5rem; }
+.mf-row:last-child { margin-bottom: 0; }
+.ff { flex: 1; }
+.ff label { display: block; font-size: .65rem; color: var(--muted); margin-bottom: .22rem; }
+.ff input {
+  width: 100%; background: var(--surf); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); padding: .48rem .5rem; font-size: .85rem;
+}
+.ff input:focus { outline: none; border-color: var(--blue); }
+.food-wrap { position: relative; flex: 2; }
+.food-results {
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: var(--surf2); border: 1px solid var(--border);
+  border-radius: 0 0 8px 8px; max-height: 220px; overflow-y: auto;
+  z-index: 20; display: none;
+}
+.food-item {
+  padding: .45rem .65rem; cursor: pointer;
+  border-bottom: 1px solid var(--border); transition: background .1s;
+}
+.food-item:last-child { border-bottom: none; }
+.food-item:active, .food-item:hover { background: var(--surf3); }
+.food-item-name { font-weight: 500; font-size: .8rem; }
+.food-item-serv { color: var(--muted); font-size: .68rem; }
+.food-item-macros { color: var(--muted); font-size: .68rem; margin-top: .1rem; }
 @media (max-width: 380px) { .run-grid { grid-template-columns: 1fr 1fr; } .nutr-top { grid-template-columns: 1fr 1fr; } }
 </style>
 </head>
@@ -346,6 +378,151 @@ const W = {
 };
 
 // ═══════════════════════════════════════════════
+// FOOD DATABASE (~120 common foods)
+// ═══════════════════════════════════════════════
+const FOODS = [
+  // ── Protein Sources ──
+  { name:'Chicken Breast', serv:'6 oz', cal:280, pro:53, carb:0, fat:6 },
+  { name:'Chicken Thigh', serv:'4 oz', cal:210, pro:24, carb:0, fat:12 },
+  { name:'Chicken Wings', serv:'6 pcs', cal:420, pro:32, carb:0, fat:32 },
+  { name:'Chicken Nuggets', serv:'6 pcs', cal:280, pro:14, carb:18, fat:17 },
+  { name:'Ground Beef 90/10', serv:'4 oz', cal:200, pro:22, carb:0, fat:11 },
+  { name:'Ground Beef 80/20', serv:'4 oz', cal:280, pro:19, carb:0, fat:22 },
+  { name:'Steak (Sirloin)', serv:'6 oz', cal:310, pro:43, carb:0, fat:14 },
+  { name:'Steak (Ribeye)', serv:'6 oz', cal:400, pro:38, carb:0, fat:26 },
+  { name:'Salmon', serv:'6 oz', cal:350, pro:38, carb:0, fat:21 },
+  { name:'Tuna (Canned)', serv:'1 can', cal:200, pro:40, carb:0, fat:2 },
+  { name:'Shrimp', serv:'6 oz', cal:170, pro:36, carb:2, fat:2 },
+  { name:'Tilapia', serv:'6 oz', cal:220, pro:44, carb:0, fat:4 },
+  { name:'Pork Chop', serv:'6 oz', cal:300, pro:42, carb:0, fat:14 },
+  { name:'Pork Tenderloin', serv:'6 oz', cal:220, pro:40, carb:0, fat:6 },
+  { name:'Turkey Breast', serv:'6 oz', cal:250, pro:50, carb:0, fat:4 },
+  { name:'Ground Turkey', serv:'4 oz', cal:170, pro:22, carb:0, fat:8 },
+  { name:'Bacon', serv:'3 slices', cal:130, pro:9, carb:0, fat:10 },
+  { name:'Sausage', serv:'2 links', cal:200, pro:10, carb:2, fat:17 },
+  { name:'Tofu', serv:'1/2 block', cal:180, pro:20, carb:4, fat:10 },
+
+  // ── Eggs & Dairy ──
+  { name:'Egg (Whole)', serv:'1 large', cal:70, pro:6, carb:0, fat:5 },
+  { name:'Egg Whites', serv:'3 large', cal:50, pro:11, carb:0, fat:0 },
+  { name:'Scrambled Eggs', serv:'2 eggs', cal:180, pro:12, carb:2, fat:14 },
+  { name:'Greek Yogurt', serv:'1 cup', cal:130, pro:20, carb:9, fat:0 },
+  { name:'Greek Yogurt (Full Fat)', serv:'1 cup', cal:220, pro:20, carb:9, fat:11 },
+  { name:'Whole Milk', serv:'1 cup', cal:150, pro:8, carb:12, fat:8 },
+  { name:'Skim Milk', serv:'1 cup', cal:90, pro:8, carb:12, fat:0 },
+  { name:'Cheddar Cheese', serv:'1 oz', cal:115, pro:7, carb:0, fat:9 },
+  { name:'Mozzarella', serv:'1 oz', cal:85, pro:6, carb:1, fat:6 },
+  { name:'Cottage Cheese', serv:'1 cup', cal:220, pro:28, carb:8, fat:9 },
+  { name:'String Cheese', serv:'1 stick', cal:80, pro:7, carb:1, fat:5 },
+  { name:'Whey Protein', serv:'1 scoop', cal:120, pro:24, carb:3, fat:1 },
+  { name:'Protein Shake', serv:'1 bottle', cal:160, pro:30, carb:5, fat:2 },
+
+  // ── Grains & Carbs ──
+  { name:'White Rice', serv:'1 cup cooked', cal:205, pro:4, carb:45, fat:0 },
+  { name:'Brown Rice', serv:'1 cup cooked', cal:215, pro:5, carb:45, fat:2 },
+  { name:'Pasta', serv:'1 cup cooked', cal:220, pro:8, carb:43, fat:1 },
+  { name:'Bread (White)', serv:'1 slice', cal:70, pro:2, carb:13, fat:1 },
+  { name:'Bread (Whole Wheat)', serv:'1 slice', cal:80, pro:4, carb:12, fat:1 },
+  { name:'Oatmeal', serv:'1 cup cooked', cal:150, pro:5, carb:27, fat:3 },
+  { name:'Overnight Oats', serv:'1 cup', cal:300, pro:12, carb:45, fat:8 },
+  { name:'Quinoa', serv:'1 cup cooked', cal:220, pro:8, carb:39, fat:4 },
+  { name:'Sweet Potato', serv:'1 medium', cal:105, pro:2, carb:24, fat:0 },
+  { name:'Potato (Baked)', serv:'1 medium', cal:160, pro:4, carb:37, fat:0 },
+  { name:'Bagel', serv:'1 plain', cal:280, pro:10, carb:54, fat:2 },
+  { name:'English Muffin', serv:'1', cal:130, pro:5, carb:25, fat:1 },
+  { name:'Tortilla (Flour)', serv:'1 large', cal:290, pro:8, carb:48, fat:7 },
+  { name:'Tortilla (Corn)', serv:'1 small', cal:60, pro:2, carb:12, fat:1 },
+  { name:'Pancakes', serv:'2 medium', cal:260, pro:6, carb:34, fat:10 },
+  { name:'Waffle', serv:'1 frozen', cal:100, pro:2, carb:16, fat:3 },
+  { name:'Cereal', serv:'1 cup', cal:110, pro:2, carb:24, fat:1 },
+  { name:'Granola', serv:'1/2 cup', cal:200, pro:5, carb:29, fat:8 },
+
+  // ── Fruits ──
+  { name:'Banana', serv:'1 medium', cal:105, pro:1, carb:27, fat:0 },
+  { name:'Apple', serv:'1 medium', cal:95, pro:0, carb:25, fat:0 },
+  { name:'Orange', serv:'1 medium', cal:65, pro:1, carb:16, fat:0 },
+  { name:'Strawberries', serv:'1 cup', cal:50, pro:1, carb:12, fat:0 },
+  { name:'Blueberries', serv:'1 cup', cal:85, pro:1, carb:21, fat:0 },
+  { name:'Grapes', serv:'1 cup', cal:100, pro:1, carb:27, fat:0 },
+  { name:'Avocado', serv:'1/2', cal:160, pro:2, carb:9, fat:15 },
+  { name:'Mango', serv:'1 cup', cal:100, pro:1, carb:25, fat:1 },
+
+  // ── Vegetables ──
+  { name:'Broccoli', serv:'1 cup', cal:55, pro:4, carb:11, fat:1 },
+  { name:'Spinach (Raw)', serv:'2 cups', cal:15, pro:2, carb:2, fat:0 },
+  { name:'Kale', serv:'2 cups', cal:15, pro:2, carb:2, fat:0 },
+  { name:'Bell Pepper', serv:'1 medium', cal:30, pro:1, carb:7, fat:0 },
+  { name:'Carrots', serv:'1 cup', cal:50, pro:1, carb:12, fat:0 },
+  { name:'Green Beans', serv:'1 cup', cal:35, pro:2, carb:8, fat:0 },
+  { name:'Mixed Salad', serv:'2 cups', cal:20, pro:2, carb:4, fat:0 },
+
+  // ── Nuts & Seeds ──
+  { name:'Almonds', serv:'1 oz (23)', cal:165, pro:6, carb:6, fat:14 },
+  { name:'Peanuts', serv:'1 oz', cal:160, pro:7, carb:5, fat:14 },
+  { name:'Walnuts', serv:'1 oz', cal:185, pro:4, carb:4, fat:18 },
+  { name:'Cashews', serv:'1 oz', cal:155, pro:5, carb:9, fat:12 },
+  { name:'Peanut Butter', serv:'2 tbsp', cal:190, pro:8, carb:7, fat:16 },
+  { name:'Almond Butter', serv:'2 tbsp', cal:195, pro:7, carb:6, fat:18 },
+
+  // ── Snacks ──
+  { name:'Protein Bar', serv:'1 bar', cal:200, pro:20, carb:22, fat:7 },
+  { name:'Granola Bar', serv:'1 bar', cal:190, pro:4, carb:29, fat:7 },
+  { name:'Trail Mix', serv:'1/4 cup', cal:175, pro:5, carb:15, fat:12 },
+  { name:'Dark Chocolate', serv:'1 oz', cal:170, pro:2, carb:13, fat:12 },
+  { name:'Popcorn (Air-Popped)', serv:'3 cups', cal:90, pro:3, carb:19, fat:1 },
+  { name:'Potato Chips', serv:'1 oz', cal:150, pro:2, carb:15, fat:10 },
+  { name:'Crackers', serv:'5 pcs', cal:80, pro:1, carb:10, fat:4 },
+  { name:'Hummus', serv:'2 tbsp', cal:70, pro:2, carb:4, fat:5 },
+  { name:'Rice Cakes', serv:'2', cal:70, pro:1, carb:15, fat:0 },
+  { name:'Beef Jerky', serv:'1 oz', cal:80, pro:13, carb:3, fat:1 },
+
+  // ── Prepared / Restaurant ──
+  { name:'Pizza (Slice)', serv:'1 large', cal:300, pro:12, carb:36, fat:12 },
+  { name:'Burger (Plain)', serv:'1', cal:350, pro:20, carb:28, fat:17 },
+  { name:'Cheeseburger', serv:'1', cal:400, pro:23, carb:30, fat:20 },
+  { name:'Burrito (Chicken)', serv:'1', cal:550, pro:30, carb:60, fat:18 },
+  { name:'Burrito Bowl', serv:'1 bowl', cal:650, pro:35, carb:70, fat:22 },
+  { name:'Grilled Chicken Salad', serv:'1 bowl', cal:350, pro:35, carb:15, fat:18 },
+  { name:'Caesar Salad', serv:'1 bowl', cal:300, pro:15, carb:10, fat:24 },
+  { name:'Turkey Sandwich', serv:'1', cal:350, pro:22, carb:35, fat:12 },
+  { name:'Pasta w/ Meat Sauce', serv:'1.5 cups', cal:400, pro:20, carb:50, fat:12 },
+  { name:'Stir Fry (Chicken)', serv:'2 cups', cal:350, pro:30, carb:25, fat:14 },
+  { name:'Sushi Roll', serv:'6-8 pcs', cal:300, pro:12, carb:40, fat:8 },
+  { name:'Tacos (Beef)', serv:'2', cal:400, pro:20, carb:30, fat:22 },
+  { name:'Chicken Soup', serv:'1.5 cups', cal:120, pro:8, carb:15, fat:3 },
+  { name:'Chili (Beef)', serv:'1.5 cups', cal:350, pro:25, carb:25, fat:15 },
+  { name:'Fish & Chips', serv:'1 serving', cal:600, pro:25, carb:50, fat:33 },
+  { name:'Mac & Cheese', serv:'1 cup', cal:350, pro:12, carb:40, fat:16 },
+  { name:'Fried Rice', serv:'1.5 cups', cal:350, pro:10, carb:50, fat:12 },
+
+  // ── Breakfast Items ──
+  { name:'Omelette (Cheese)', serv:'3 eggs', cal:350, pro:22, carb:2, fat:28 },
+  { name:'Smoothie (Fruit)', serv:'16 oz', cal:250, pro:5, carb:55, fat:2 },
+  { name:'Protein Smoothie', serv:'16 oz', cal:300, pro:30, carb:35, fat:5 },
+  { name:'Acai Bowl', serv:'1 bowl', cal:400, pro:8, carb:60, fat:15 },
+
+  // ── Beverages ──
+  { name:'Coffee (Black)', serv:'8 oz', cal:5, pro:0, carb:0, fat:0 },
+  { name:'Coffee w/ Cream', serv:'8 oz', cal:50, pro:0, carb:1, fat:5 },
+  { name:'Latte', serv:'12 oz', cal:150, pro:8, carb:15, fat:6 },
+  { name:'Orange Juice', serv:'8 oz', cal:110, pro:2, carb:26, fat:0 },
+  { name:'Soda', serv:'12 oz', cal:140, pro:0, carb:39, fat:0 },
+  { name:'Sports Drink', serv:'12 oz', cal:80, pro:0, carb:21, fat:0 },
+  { name:'Beer', serv:'12 oz', cal:150, pro:1, carb:13, fat:0 },
+  { name:'Wine', serv:'5 oz', cal:125, pro:0, carb:4, fat:0 },
+
+  // ── Fats & Condiments ──
+  { name:'Olive Oil', serv:'1 tbsp', cal:120, pro:0, carb:0, fat:14 },
+  { name:'Butter', serv:'1 tbsp', cal:100, pro:0, carb:0, fat:11 },
+  { name:'Ranch Dressing', serv:'2 tbsp', cal:130, pro:1, carb:2, fat:13 },
+  { name:'Mayonnaise', serv:'1 tbsp', cal:100, pro:0, carb:0, fat:11 },
+  { name:'Honey', serv:'1 tbsp', cal:60, pro:0, carb:17, fat:0 },
+  { name:'Maple Syrup', serv:'2 tbsp', cal:100, pro:0, carb:26, fat:0 },
+  { name:'Ketchup', serv:'1 tbsp', cal:20, pro:0, carb:5, fat:0 },
+  { name:'Salsa', serv:'2 tbsp', cal:10, pro:0, carb:2, fat:0 },
+];
+
+// ═══════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════
 function ds(d) { return d.toISOString().slice(0, 10); }
@@ -427,8 +604,13 @@ const DB = {
       if (!key.startsWith('log_')) continue;
       const log = JSON.parse(localStorage.getItem(key));
       const n = log.nutrition;
-      if (n && (n.calories || n.protein)) {
-        out.push({ date: key.slice(4), cal: n.calories||0, pro: n.protein||0, water: n.water||0 });
+      if (n && (n.calories || n.protein || n.carbs || n.fat)) {
+        out.push({
+          date: key.slice(4),
+          cal: n.calories||0, pro: n.protein||0,
+          carb: n.carbs||0, fat: n.fat||0,
+          water: n.water||0
+        });
       }
     }
     return out.sort((a, b) => a.date.localeCompare(b.date));
@@ -586,61 +768,96 @@ function checkBlock(k, log, id, label, sub) {
 
 // ── NUTRITION ──────────────────────────────────
 function nutritionSection(k, log) {
-  const n = log.nutrition || { calories: null, protein: null, water: 0, meals: [], manualTotals: true };
+  const n = log.nutrition || { calories:null, protein:null, carbs:null, fat:null, water:0, meals:[], manualTotals:true };
   const meals = n.meals || [];
   const hasMeals = meals.length > 0;
   const sumCal = hasMeals ? meals.reduce((a, m) => a + (m.cal || 0), 0) : 0;
   const sumPro = hasMeals ? meals.reduce((a, m) => a + (m.pro || 0), 0) : 0;
+  const sumCarb = hasMeals ? meals.reduce((a, m) => a + (m.carb || 0), 0) : 0;
+  const sumFat = hasMeals ? meals.reduce((a, m) => a + (m.fat || 0), 0) : 0;
+
   const dispCal = n.manualTotals ? (n.calories || '') : (hasMeals ? sumCal : (n.calories || ''));
   const dispPro = n.manualTotals ? (n.protein || '') : (hasMeals ? sumPro : (n.protein || ''));
+  const dispCarb = n.manualTotals ? (n.carbs || '') : (hasMeals ? sumCarb : (n.carbs || ''));
+  const dispFat = n.manualTotals ? (n.fat || '') : (hasMeals ? sumFat : (n.fat || ''));
   const isReadonly = !n.manualTotals && hasMeals;
   const showMealForm = S.form === '_meal';
 
   let o = `<div class="sec">Nutrition</div><div class="nutr-card"><h3>🥗 Nutrition</h3>`;
 
-  // Top row: calories, protein, water
+  // Top row: 4 macros
   o += `<div class="nutr-top">
     <div class="nutr-field"><label>Calories</label>
       <input id="ncal" type="number" value="${dispCal}" placeholder="—" inputmode="numeric" ${isReadonly?'readonly':''}></div>
     <div class="nutr-field"><label>Protein (g)</label>
       <input id="npro" type="number" value="${dispPro}" placeholder="—" inputmode="numeric" ${isReadonly?'readonly':''}></div>
-    <div>
-      <div class="water-label">Water</div>
-      <div class="water-row">${Array.from({length:8},(_,i)=>
-        `<div class="water-dot${i<(n.water||0)?' filled':''}" data-a="water" data-i="${i}"></div>`
-      ).join('')}</div>
-    </div>
+    <div class="nutr-field"><label>Carbs (g)</label>
+      <input id="ncarb" type="number" value="${dispCarb}" placeholder="—" inputmode="numeric" ${isReadonly?'readonly':''}></div>
+    <div class="nutr-field"><label>Fat (g)</label>
+      <input id="nfat" type="number" value="${dispFat}" placeholder="—" inputmode="numeric" ${isReadonly?'readonly':''}></div>
   </div>`;
 
-  // Meal list
+  // Water dots (own row)
+  o += `<div class="water-wrap">
+    <div class="water-label">Water</div>
+    <div class="water-row">${Array.from({length:8},(_,i)=>
+      `<div class="water-dot${i<(n.water||0)?' filled':''}" data-a="water" data-i="${i}"></div>`
+    ).join('')}</div>
+  </div>`;
+
+  // Meal / food list
   if (hasMeals) {
     o += `<div class="meal-list">`;
     meals.forEach((m, i) => {
-      const parts = [m.cal ? m.cal+'cal' : '', m.pro ? m.pro+'g' : ''].filter(Boolean).join(' · ');
+      const parts = [];
+      if (m.cal) parts.push(m.cal+'cal');
+      if (m.pro) parts.push(m.pro+'p');
+      if (m.carb) parts.push(m.carb+'c');
+      if (m.fat) parts.push(m.fat+'f');
+      const qtyLabel = m.qty && m.qty !== 1 ? ` (x${m.qty})` : '';
       o += `<div class="meal-row">
-        <span class="meal-name">${m.name}</span>
-        <span class="meal-macros">${parts}</span>
+        <span class="meal-name">${m.name}${qtyLabel}</span>
+        <span class="meal-macros">${parts.join(' · ')}</span>
         <button class="meal-del" data-a="del-meal" data-i="${i}">✕</button>
       </div>`;
     });
     o += `</div>`;
   }
 
-  // Add meal button or inline form
+  // Add food form or button
   if (showMealForm) {
-    o += `<div class="log-form" style="margin-top:.5rem;border-top:${hasMeals?'none':'1px solid var(--border)'}">
-      <div><label>Meal</label><input id="mn" type="text" placeholder="Lunch" style="width:100px"></div>
-      <div><label>Cal</label><input id="mc" type="number" placeholder="500" inputmode="numeric" style="width:65px"></div>
-      <div><label>Protein</label><input id="mp" type="number" placeholder="30" inputmode="numeric" style="width:55px"></div>
-      <button class="btn-log" data-a="log-meal">Add</button>
+    o += `<div class="meal-form">
+      <div class="mf-row">
+        <div class="food-wrap">
+          <label>Search food or type name</label>
+          <input id="mfood" type="text" placeholder="e.g. Chicken Breast" autocomplete="off">
+          <div id="food-results" class="food-results"></div>
+        </div>
+        <div class="ff" style="flex:0 0 55px">
+          <label>Qty</label>
+          <input id="mqty" type="number" value="1" min="0.25" step="0.25" inputmode="decimal">
+        </div>
+      </div>
+      <div class="mf-row">
+        <div class="ff"><label>Cal</label><input id="mc" type="number" placeholder="—" inputmode="numeric"></div>
+        <div class="ff"><label>Pro</label><input id="mp" type="number" placeholder="—" inputmode="numeric"></div>
+        <div class="ff"><label>Carb</label><input id="mcb" type="number" placeholder="—" inputmode="numeric"></div>
+        <div class="ff"><label>Fat</label><input id="mf" type="number" placeholder="—" inputmode="numeric"></div>
+        <button class="btn-log" data-a="log-meal" style="flex-shrink:0">Add</button>
+      </div>
     </div>`;
   } else {
-    o += `<button class="btn-add-meal" data-a="form" data-ex="_meal">+ Add Meal</button>`;
+    o += `<button class="btn-add-meal" data-a="form" data-ex="_meal">+ Add Food</button>`;
   }
 
-  // Summary when meals exist and totals are auto-summed
+  // Summary when meals exist
   if (hasMeals && !n.manualTotals) {
-    o += `<div class="nutr-sum"><span><strong>${sumCal}</strong> cal total</span><span><strong>${sumPro}g</strong> protein total</span></div>`;
+    o += `<div class="nutr-sum">
+      <span><strong>${sumCal}</strong> cal</span>
+      <span><strong>${sumPro}g</strong> pro</span>
+      <span><strong>${sumCarb}g</strong> carb</span>
+      <span><strong>${sumFat}g</strong> fat</span>
+    </div>`;
   }
 
   o += `</div>`;
@@ -665,8 +882,11 @@ function history() {
     if (hasRun)  parts.push(`${log.run.d||'?'}mi run`);
     if (checks)  parts.push(`${checks} done`);
     if (log.nutrition) {
-      if (log.nutrition.calories) parts.push(`${log.nutrition.calories} cal`);
-      if (log.nutrition.protein)  parts.push(`${log.nutrition.protein}g pro`);
+      const nn = log.nutrition;
+      if (nn.calories) parts.push(`${nn.calories}cal`);
+      if (nn.protein)  parts.push(`${nn.protein}p`);
+      if (nn.carbs)    parts.push(`${nn.carbs}c`);
+      if (nn.fat)      parts.push(`${nn.fat}f`);
     }
     o += `<div class="hist-item" data-a="goto" data-ds="${d}">
       <div class="hist-date">${dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</div>
@@ -686,11 +906,13 @@ function progress() {
   });
   const exList = [...allEx].sort();
   if (!S.progEx && exList.length) S.progEx = exList[0];
-  const isNutr = S.progEx === '__cal' || S.progEx === '__pro';
+  const isNutr = ['__cal','__pro','__carb','__fat'].includes(S.progEx);
   let o = `<div class="prog-wrap">
     <select class="ex-sel" data-a="sel-ex">
       <option value="__cal"${S.progEx==='__cal'?' selected':''}>📊 Calories (daily)</option>
       <option value="__pro"${S.progEx==='__pro'?' selected':''}>📊 Protein (daily)</option>
+      <option value="__carb"${S.progEx==='__carb'?' selected':''}>📊 Carbs (daily)</option>
+      <option value="__fat"${S.progEx==='__fat'?' selected':''}>📊 Fat (daily)</option>
       <option disabled>──────────</option>
       ${exList.map(e=>`<option value="${e}"${e===S.progEx?' selected':''}>${e}</option>`).join('')}
     </select>`;
@@ -698,8 +920,10 @@ function progress() {
   if (isNutr) {
     // Nutrition trend chart
     const nHist = DB.nutrHistory();
-    const field = S.progEx === '__cal' ? 'cal' : 'pro';
-    const label = S.progEx === '__cal' ? 'Calories' : 'Protein (g)';
+    const fieldMap = { '__cal':'cal', '__pro':'pro', '__carb':'carb', '__fat':'fat' };
+    const labelMap = { '__cal':'Calories', '__pro':'Protein (g)', '__carb':'Carbs (g)', '__fat':'Fat (g)' };
+    const field = fieldMap[S.progEx];
+    const label = labelMap[S.progEx];
     if (!nHist.length) {
       o += `<div class="empty"><div class="ei">📈</div><p>No nutrition data logged yet</p></div>`;
     } else {
@@ -711,11 +935,11 @@ function progress() {
           const dt = new Date(h.date+'T12:00:00');
           return `<div class="prog-entry">
             <div>
-              <div style="font-size:.78rem">${h.cal} cal · ${h.pro}g pro · ${h.water} water</div>
+              <div style="font-size:.78rem">${h.cal}cal · ${h.pro}p · ${h.carb}c · ${h.fat}f · ${h.water}💧</div>
               <div class="pd">${dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
             </div>
             <div style="text-align:right">
-              <div class="pw">${h[field]}${field==='pro'?'g':''}</div>
+              <div class="pw">${h[field]}${field!=='cal'?'g':''}</div>
               ${i===0?'<div class="pnew">LATEST</div>':''}
             </div>
           </div>`;
@@ -855,8 +1079,8 @@ function bind() {
 
   // ── Nutrition events ──
 
-  // Calorie/protein manual input (debounced)
-  ['ncal','npro'].forEach(id => {
+  // Calorie/protein/carb/fat manual input (debounced)
+  ['ncal','npro','ncarb','nfat'].forEach(id => {
     const el = document.getElementById(id);
     if (el && !el.readOnly) {
       let t;
@@ -864,9 +1088,11 @@ function bind() {
         clearTimeout(t);
         t = setTimeout(() => {
           const k = ds(S.date), l = DB.getLog(k);
-          const n = l.nutrition || { calories:null, protein:null, water:0, meals:[], manualTotals:true };
-          if (id==='ncal') n.calories = el.value ? parseInt(el.value) : null;
-          if (id==='npro') n.protein = el.value ? parseInt(el.value) : null;
+          const n = l.nutrition || { calories:null, protein:null, carbs:null, fat:null, water:0, meals:[], manualTotals:true };
+          if (id==='ncal')  n.calories = el.value ? parseInt(el.value) : null;
+          if (id==='npro')  n.protein  = el.value ? parseInt(el.value) : null;
+          if (id==='ncarb') n.carbs    = el.value ? parseInt(el.value) : null;
+          if (id==='nfat')  n.fat      = el.value ? parseInt(el.value) : null;
           n.manualTotals = true;
           l.nutrition = n; DB.save(k, l);
         }, 400);
@@ -876,35 +1102,95 @@ function bind() {
 
   // Water dots
   $('[data-a="water"]').forEach(dot => dot.addEventListener('click', () => {
-    if (!dot.dataset.i && dot.dataset.i !== '0') return; // skip parent row
+    if (!dot.dataset.i && dot.dataset.i !== '0') return;
     const k = ds(S.date), l = DB.getLog(k);
-    const n = l.nutrition || { calories:null, protein:null, water:0, meals:[], manualTotals:true };
+    const n = l.nutrition || { calories:null, protein:null, carbs:null, fat:null, water:0, meals:[], manualTotals:true };
     const tapped = parseInt(dot.dataset.i) + 1;
     n.water = (n.water === tapped) ? tapped - 1 : tapped;
     l.nutrition = n; DB.save(k, l); render();
   }));
 
-  // Log meal
+  // ── Food search autocomplete ──
+  const foodInput = document.getElementById('mfood');
+  const foodResults = document.getElementById('food-results');
+  if (foodInput && foodResults) {
+    let baseFood = null; // selected food from database (for qty recalc)
+
+    foodInput.addEventListener('input', () => {
+      const q = foodInput.value.trim().toLowerCase();
+      if (q.length < 2) { foodResults.style.display = 'none'; return; }
+
+      const matches = FOODS.filter(f => f.name.toLowerCase().includes(q)).slice(0, 6);
+      if (!matches.length) { foodResults.style.display = 'none'; return; }
+
+      foodResults.innerHTML = matches.map((f, i) =>
+        `<div class="food-item" data-fi="${i}">
+          <div class="food-item-name">${f.name} <span class="food-item-serv">(${f.serv})</span></div>
+          <div class="food-item-macros">${f.cal}cal · ${f.pro}p · ${f.carb}c · ${f.fat}f</div>
+        </div>`
+      ).join('');
+      foodResults.style.display = 'block';
+
+      // Attach click handlers to results
+      foodResults.querySelectorAll('.food-item').forEach((item, idx) => {
+        item.addEventListener('click', () => {
+          const f = matches[idx];
+          baseFood = f;
+          foodInput.value = f.name;
+          const qty = parseFloat(document.getElementById('mqty')?.value) || 1;
+          document.getElementById('mc').value = Math.round(f.cal * qty);
+          document.getElementById('mp').value = Math.round(f.pro * qty);
+          document.getElementById('mcb').value = Math.round(f.carb * qty);
+          document.getElementById('mf').value = Math.round(f.fat * qty);
+          foodResults.style.display = 'none';
+          foodInput.focus();
+        });
+      });
+    });
+
+    // Close dropdown on blur (with delay for click)
+    foodInput.addEventListener('blur', () => {
+      setTimeout(() => { foodResults.style.display = 'none'; }, 200);
+    });
+
+    // Qty change → recalculate macros from base food
+    const mqty = document.getElementById('mqty');
+    if (mqty) mqty.addEventListener('input', () => {
+      if (!baseFood) return;
+      const qty = parseFloat(mqty.value) || 1;
+      document.getElementById('mc').value = Math.round(baseFood.cal * qty);
+      document.getElementById('mp').value = Math.round(baseFood.pro * qty);
+      document.getElementById('mcb').value = Math.round(baseFood.carb * qty);
+      document.getElementById('mf').value = Math.round(baseFood.fat * qty);
+    });
+  }
+
+  // Log meal / food
   const logMeal = document.querySelector('[data-a="log-meal"]');
   if (logMeal) logMeal.addEventListener('click', () => {
-    const name = document.getElementById('mn')?.value?.trim() || '';
+    const name = document.getElementById('mfood')?.value?.trim() || '';
     if (!name) return;
     const cal = parseInt(document.getElementById('mc')?.value) || 0;
     const pro = parseInt(document.getElementById('mp')?.value) || 0;
+    const carb = parseInt(document.getElementById('mcb')?.value) || 0;
+    const fat = parseInt(document.getElementById('mf')?.value) || 0;
+    const qty = parseFloat(document.getElementById('mqty')?.value) || 1;
     const k = ds(S.date), l = DB.getLog(k);
-    const n = l.nutrition || { calories:null, protein:null, water:0, meals:[], manualTotals:true };
+    const n = l.nutrition || { calories:null, protein:null, carbs:null, fat:null, water:0, meals:[], manualTotals:true };
     n.meals = n.meals || [];
-    n.meals.push({ name, cal, pro, ts: Date.now() });
+    n.meals.push({ name, cal, pro, carb, fat, qty, ts: Date.now() });
     // Auto-sum from meals
     n.manualTotals = false;
     n.calories = n.meals.reduce((a,m) => a + (m.cal||0), 0);
     n.protein = n.meals.reduce((a,m) => a + (m.pro||0), 0);
+    n.carbs = n.meals.reduce((a,m) => a + (m.carb||0), 0);
+    n.fat = n.meals.reduce((a,m) => a + (m.fat||0), 0);
     l.nutrition = n; DB.save(k, l); S.form = null; render();
   });
 
-  // Enter on meal protein → submit
-  const mp = document.getElementById('mp');
-  if (mp) mp.addEventListener('keydown', e => { if (e.key==='Enter') document.querySelector('[data-a="log-meal"]')?.click(); });
+  // Enter on food name or fat field → submit
+  const mfField = document.getElementById('mf');
+  if (mfField) mfField.addEventListener('keydown', e => { if (e.key==='Enter') document.querySelector('[data-a="log-meal"]')?.click(); });
 
   // Delete meal
   $('[data-a="del-meal"]').forEach(btn => btn.addEventListener('click', () => {
@@ -914,6 +1200,8 @@ function bind() {
       if (!l.nutrition.manualTotals) {
         l.nutrition.calories = l.nutrition.meals.reduce((a,m) => a + (m.cal||0), 0);
         l.nutrition.protein = l.nutrition.meals.reduce((a,m) => a + (m.pro||0), 0);
+        l.nutrition.carbs = l.nutrition.meals.reduce((a,m) => a + (m.carb||0), 0);
+        l.nutrition.fat = l.nutrition.meals.reduce((a,m) => a + (m.fat||0), 0);
       }
       DB.save(k, l); render();
     }
