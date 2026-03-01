@@ -69,6 +69,12 @@ input, select, textarea { font-family: inherit; }
 }
 .wk-hd .title { font-size: 1.05rem; font-weight: 700; }
 .wk-hd .sub { font-size: .78rem; opacity: .75; margin-top: .15rem; }
+.btn-change {
+  margin-left: auto; background: rgba(255,255,255,.18); color: #fff;
+  border-radius: 6px; padding: .18rem .55rem; font-size: .68rem; font-weight: 600;
+  letter-spacing: .03em; flex-shrink: 0;
+}
+.override-note { font-size: .72rem; opacity: .6; margin-top: .15rem; font-style: italic; }
 /* ── Section label ── */
 .sec {
   font-size: .65rem; font-weight: 700; letter-spacing: .09em;
@@ -158,18 +164,84 @@ input, select, textarea { font-family: inherit; }
 }
 .notes-wrap textarea:focus { outline: none; border-color: var(--blue); }
 .notes-wrap textarea::placeholder { color: var(--muted); }
-/* ── History ── */
-.hist-list { padding: .5rem .75rem; display: flex; flex-direction: column; gap: .6rem; }
-.hist-item {
-  background: var(--surf); border-radius: 12px; padding: .9rem 1.1rem; cursor: pointer;
-  transition: opacity .15s;
+/* ── Calendar ── */
+.cal-wrap { padding: .75rem; }
+.cal-hd {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .25rem 0 .6rem;
 }
-.hist-item:hover { opacity: .85; }
-.hist-date { font-size: .7rem; color: var(--muted); margin-bottom: .35rem; }
-.hist-theme { font-weight: 600; display: flex; align-items: center; gap: .4rem; font-size: .92rem; }
-.hist-theme .wk { font-size: .72rem; color: var(--muted); font-weight: 400; }
-.hist-sum { margin-top: .3rem; font-size: .77rem; color: var(--muted); }
-.hist-note { margin-top: .25rem; font-style: italic; font-size: .75rem; color: var(--muted); }
+.cal-hd span { font-weight: 700; font-size: 1.05rem; }
+.cal-hd button {
+  background: var(--surf); color: var(--text);
+  border-radius: 8px; padding: .35rem .65rem; font-size: .9rem; line-height: 1;
+}
+.cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;
+}
+.cal-dow {
+  text-align: center; font-size: .6rem; font-weight: 700;
+  color: var(--muted); padding: .35rem 0;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.cal-cell {
+  aspect-ratio: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  border-radius: 8px; cursor: pointer;
+  background: var(--surf); gap: 2px;
+  transition: background .15s;
+}
+.cal-cell.empty { background: transparent; cursor: default; }
+.cal-cell:not(.empty):active { background: var(--surf2); }
+.cal-cell.today { outline: 2px solid var(--blue); outline-offset: -2px; }
+.cal-cell.swap-sel { outline: 2px solid var(--orange); outline-offset: -2px; background: var(--surf2); }
+.cal-num { font-size: .78rem; font-weight: 500; line-height: 1; }
+.cal-dot {
+  width: 7px; height: 7px; border-radius: 50%; opacity: .25;
+}
+.cal-dot.active { opacity: 1; }
+.cal-dot.c-yoga { background: #8b5cf6; }
+.cal-dot.c-run { background: #10b981; }
+.cal-dot.c-legs { background: #ef4444; }
+.cal-dot.c-upper { background: #3b82f6; }
+.cal-dot.c-lrun { background: #f59e0b; }
+.cal-dot.overridden { outline: 1px solid rgba(255,255,255,.4); outline-offset: 1px; }
+.swap-bar {
+  text-align: center; padding: .6rem 0 .25rem;
+}
+.swap-bar button {
+  background: var(--surf); color: var(--text);
+  border-radius: 8px; padding: .45rem 1rem;
+  font-size: .82rem; font-weight: 500;
+}
+.swap-bar.active {
+  background: var(--surf); border-radius: 10px;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .55rem 1rem;
+}
+.swap-bar.active span { font-size: .82rem; color: var(--orange); font-weight: 500; }
+.swap-bar.active button { background: var(--surf2); font-size: .78rem; padding: .35rem .75rem; }
+/* ── Workout Picker ── */
+.wk-picker {
+  margin: .75rem; background: var(--surf); border-radius: 12px; overflow: hidden;
+}
+.wk-picker-title {
+  padding: .75rem 1rem; font-size: .82rem; font-weight: 600;
+  border-bottom: 1px solid var(--border); color: var(--muted);
+}
+.wk-pick-item {
+  padding: .65rem 1rem; display: flex; justify-content: space-between;
+  align-items: center; cursor: pointer; font-size: .88rem;
+  transition: background .1s; border-bottom: 1px solid var(--border);
+}
+.wk-pick-item:last-of-type { border-bottom: none; }
+.wk-pick-item:active { background: var(--surf2); }
+.wk-pick-item.selected { background: var(--surf3); color: var(--blue); }
+.wk-pick-reset {
+  width: 100%; padding: .6rem; background: var(--surf3);
+  color: var(--muted); font-size: .78rem; text-align: center;
+  border-top: 1px solid var(--border);
+}
+.wk-pick-reset:active { color: var(--text); }
 /* ── Progress ── */
 .prog-wrap { padding: .75rem; }
 .ex-sel {
@@ -401,7 +473,6 @@ const FOODS = [
   { name:'Bacon', serv:'3 slices', cal:130, pro:9, carb:0, fat:10 },
   { name:'Sausage', serv:'2 links', cal:200, pro:10, carb:2, fat:17 },
   { name:'Tofu', serv:'1/2 block', cal:180, pro:20, carb:4, fat:10 },
-
   // ── Eggs & Dairy ──
   { name:'Egg (Whole)', serv:'1 large', cal:70, pro:6, carb:0, fat:5 },
   { name:'Egg Whites', serv:'3 large', cal:50, pro:11, carb:0, fat:0 },
@@ -416,7 +487,6 @@ const FOODS = [
   { name:'String Cheese', serv:'1 stick', cal:80, pro:7, carb:1, fat:5 },
   { name:'Whey Protein', serv:'1 scoop', cal:120, pro:24, carb:3, fat:1 },
   { name:'Protein Shake', serv:'1 bottle', cal:160, pro:30, carb:5, fat:2 },
-
   // ── Grains & Carbs ──
   { name:'White Rice', serv:'1 cup cooked', cal:205, pro:4, carb:45, fat:0 },
   { name:'Brown Rice', serv:'1 cup cooked', cal:215, pro:5, carb:45, fat:2 },
@@ -436,7 +506,6 @@ const FOODS = [
   { name:'Waffle', serv:'1 frozen', cal:100, pro:2, carb:16, fat:3 },
   { name:'Cereal', serv:'1 cup', cal:110, pro:2, carb:24, fat:1 },
   { name:'Granola', serv:'1/2 cup', cal:200, pro:5, carb:29, fat:8 },
-
   // ── Fruits ──
   { name:'Banana', serv:'1 medium', cal:105, pro:1, carb:27, fat:0 },
   { name:'Apple', serv:'1 medium', cal:95, pro:0, carb:25, fat:0 },
@@ -446,7 +515,6 @@ const FOODS = [
   { name:'Grapes', serv:'1 cup', cal:100, pro:1, carb:27, fat:0 },
   { name:'Avocado', serv:'1/2', cal:160, pro:2, carb:9, fat:15 },
   { name:'Mango', serv:'1 cup', cal:100, pro:1, carb:25, fat:1 },
-
   // ── Vegetables ──
   { name:'Broccoli', serv:'1 cup', cal:55, pro:4, carb:11, fat:1 },
   { name:'Spinach (Raw)', serv:'2 cups', cal:15, pro:2, carb:2, fat:0 },
@@ -455,7 +523,6 @@ const FOODS = [
   { name:'Carrots', serv:'1 cup', cal:50, pro:1, carb:12, fat:0 },
   { name:'Green Beans', serv:'1 cup', cal:35, pro:2, carb:8, fat:0 },
   { name:'Mixed Salad', serv:'2 cups', cal:20, pro:2, carb:4, fat:0 },
-
   // ── Nuts & Seeds ──
   { name:'Almonds', serv:'1 oz (23)', cal:165, pro:6, carb:6, fat:14 },
   { name:'Peanuts', serv:'1 oz', cal:160, pro:7, carb:5, fat:14 },
@@ -463,7 +530,6 @@ const FOODS = [
   { name:'Cashews', serv:'1 oz', cal:155, pro:5, carb:9, fat:12 },
   { name:'Peanut Butter', serv:'2 tbsp', cal:190, pro:8, carb:7, fat:16 },
   { name:'Almond Butter', serv:'2 tbsp', cal:195, pro:7, carb:6, fat:18 },
-
   // ── Snacks ──
   { name:'Protein Bar', serv:'1 bar', cal:200, pro:20, carb:22, fat:7 },
   { name:'Granola Bar', serv:'1 bar', cal:190, pro:4, carb:29, fat:7 },
@@ -475,7 +541,6 @@ const FOODS = [
   { name:'Hummus', serv:'2 tbsp', cal:70, pro:2, carb:4, fat:5 },
   { name:'Rice Cakes', serv:'2', cal:70, pro:1, carb:15, fat:0 },
   { name:'Beef Jerky', serv:'1 oz', cal:80, pro:13, carb:3, fat:1 },
-
   // ── Prepared / Restaurant ──
   { name:'Pizza (Slice)', serv:'1 large', cal:300, pro:12, carb:36, fat:12 },
   { name:'Burger (Plain)', serv:'1', cal:350, pro:20, carb:28, fat:17 },
@@ -494,13 +559,11 @@ const FOODS = [
   { name:'Fish & Chips', serv:'1 serving', cal:600, pro:25, carb:50, fat:33 },
   { name:'Mac & Cheese', serv:'1 cup', cal:350, pro:12, carb:40, fat:16 },
   { name:'Fried Rice', serv:'1.5 cups', cal:350, pro:10, carb:50, fat:12 },
-
   // ── Breakfast Items ──
   { name:'Omelette (Cheese)', serv:'3 eggs', cal:350, pro:22, carb:2, fat:28 },
   { name:'Smoothie (Fruit)', serv:'16 oz', cal:250, pro:5, carb:55, fat:2 },
   { name:'Protein Smoothie', serv:'16 oz', cal:300, pro:30, carb:35, fat:5 },
   { name:'Acai Bowl', serv:'1 bowl', cal:400, pro:8, carb:60, fat:15 },
-
   // ── Beverages ──
   { name:'Coffee (Black)', serv:'8 oz', cal:5, pro:0, carb:0, fat:0 },
   { name:'Coffee w/ Cream', serv:'8 oz', cal:50, pro:0, carb:1, fat:5 },
@@ -510,7 +573,6 @@ const FOODS = [
   { name:'Sports Drink', serv:'12 oz', cal:80, pro:0, carb:21, fat:0 },
   { name:'Beer', serv:'12 oz', cal:150, pro:1, carb:13, fat:0 },
   { name:'Wine', serv:'5 oz', cal:125, pro:0, carb:4, fat:0 },
-
   // ── Fats & Condiments ──
   { name:'Olive Oil', serv:'1 tbsp', cal:120, pro:0, carb:0, fat:14 },
   { name:'Butter', serv:'1 tbsp', cal:100, pro:0, carb:0, fat:11 },
@@ -550,6 +612,17 @@ function calcPace(dist, mins) {
 }
 
 function isToday(d) { return ds(d) === ds(new Date()); }
+
+function getDayType(date, log) {
+  return log.override !== undefined ? log.override : date.getDay();
+}
+
+function hasLogData(log) {
+  return Object.keys(log.sets||{}).length > 0 ||
+    (log.run && log.run.saved) ||
+    Object.values(log.checks||{}).filter(Boolean).length > 0 ||
+    (log.nutrition && (log.nutrition.calories || log.nutrition.protein || log.nutrition.carbs || log.nutrition.fat));
+}
 
 // ═══════════════════════════════════════════════
 // STORAGE
@@ -620,7 +693,11 @@ const DB = {
 // ═══════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════
-let S = { date: new Date(), tab: 'today', form: null, progEx: null };
+let S = {
+  date: new Date(), tab: 'today', form: null, progEx: null,
+  calMonth: new Date().getMonth(), calYear: new Date().getFullYear(),
+  showPicker: false, swapMode: false, swapFirst: null
+};
 
 // ═══════════════════════════════════════════════
 // RENDER
@@ -631,10 +708,11 @@ function render() {
 }
 
 function html() {
-  const w = W[S.date.getDay()];
-  const cw = cycleWeek(S.date);
   const k = ds(S.date);
   const log = DB.getLog(k);
+  const dayType = getDayType(S.date, log);
+  const w = W[dayType];
+  const cw = cycleWeek(S.date);
   return `
     <div class="hd">
       <div class="hd-left">
@@ -649,29 +727,40 @@ function html() {
     </div>
     <div class="tabs">
       <button class="tab ${S.tab==='today'?'on':''}" data-tab="today">Workout</button>
-      <button class="tab ${S.tab==='history'?'on':''}" data-tab="history">History</button>
+      <button class="tab ${S.tab==='calendar'?'on':''}" data-tab="calendar">Calendar</button>
       <button class="tab ${S.tab==='progress'?'on':''}" data-tab="progress">Progress</button>
     </div>
     <div class="scroll">
       ${S.tab==='today'    ? today(w, cw, k, log) : ''}
-      ${S.tab==='history'  ? history() : ''}
+      ${S.tab==='calendar' ? calendar() : ''}
       ${S.tab==='progress' ? progress() : ''}
     </div>`;
 }
 
 // ── TODAY ──────────────────────────────────────
 function today(w, cw, k, log) {
+  const isOverridden = log.override !== undefined;
+  const origW = isOverridden ? W[S.date.getDay()] : null;
   const wd = w.weeks ? w.weeks[cw] : null;
+
   let o = `
     <div class="wk-hd ${w.cls}">
       <div class="row1">
         <span class="icon">${w.icon}</span>
         <span class="badge">Cycle Week ${cw + 1} / 3</span>
+        <button class="btn-change" data-a="toggle-picker">${S.showPicker ? '✕ Close' : '✎ Change'}</button>
       </div>
       ${wd ? `<div class="title">${wd.title}</div>` : ''}
       ${w.sub  ? `<div class="sub">Focus: ${w.sub}</div>` : ''}
       ${w.note ? `<div class="sub">${w.note}</div>` : ''}
+      ${isOverridden ? `<div class="override-note">Swapped from ${origW.icon} ${origW.theme}</div>` : ''}
     </div>`;
+
+  // Show workout picker if active
+  if (S.showPicker) {
+    o += workoutPicker(k, log);
+    return o; // Don't show the rest when picker is open
+  }
 
   if (w.type === 'run')          o += runCard(k, log, w);
   else if (w.type === 'yoga')    o += yogaBlock(k, log);
@@ -688,6 +777,28 @@ function today(w, cw, k, log) {
     <div class="notes-wrap">
       <textarea placeholder="How did it go? Any thoughts…" data-a="notes">${log.notes||''}</textarea>
     </div>`;
+  return o;
+}
+
+function workoutPicker(k, log) {
+  const pickerOrder = [1, 2, 3, 4, 5, 6, 0];
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const currentType = getDayType(S.date, log);
+  const isOverridden = log.override !== undefined;
+
+  let o = `<div class="wk-picker"><div class="wk-picker-title">Pick workout for this day</div>`;
+  for (const d of pickerOrder) {
+    const ww = W[d];
+    const selected = d === currentType;
+    o += `<div class="wk-pick-item${selected?' selected':''}" data-a="pick-workout" data-day="${d}">
+      <span>${ww.icon} ${ww.theme}</span>
+      <span style="font-size:.7rem;color:var(--muted)">${dayNames[d]}${selected?' ✓':''}</span>
+    </div>`;
+  }
+  if (isOverridden) {
+    o += `<button class="wk-pick-reset" data-a="reset-workout">Reset to Default Schedule</button>`;
+  }
+  o += `</div>`;
   return o;
 }
 
@@ -785,7 +896,6 @@ function nutritionSection(k, log) {
 
   let o = `<div class="sec">Nutrition</div><div class="nutr-card"><h3>🥗 Nutrition</h3>`;
 
-  // Top row: 4 macros
   o += `<div class="nutr-top">
     <div class="nutr-field"><label>Calories</label>
       <input id="ncal" type="number" value="${dispCal}" placeholder="—" inputmode="numeric" ${isReadonly?'readonly':''}></div>
@@ -797,7 +907,6 @@ function nutritionSection(k, log) {
       <input id="nfat" type="number" value="${dispFat}" placeholder="—" inputmode="numeric" ${isReadonly?'readonly':''}></div>
   </div>`;
 
-  // Water dots (own row)
   o += `<div class="water-wrap">
     <div class="water-label">Water</div>
     <div class="water-row">${Array.from({length:8},(_,i)=>
@@ -805,7 +914,6 @@ function nutritionSection(k, log) {
     ).join('')}</div>
   </div>`;
 
-  // Meal / food list
   if (hasMeals) {
     o += `<div class="meal-list">`;
     meals.forEach((m, i) => {
@@ -824,7 +932,6 @@ function nutritionSection(k, log) {
     o += `</div>`;
   }
 
-  // Add food form or button
   if (showMealForm) {
     o += `<div class="meal-form">
       <div class="mf-row">
@@ -850,7 +957,6 @@ function nutritionSection(k, log) {
     o += `<button class="btn-add-meal" data-a="form" data-ex="_meal">+ Add Food</button>`;
   }
 
-  // Summary when meals exist
   if (hasMeals && !n.manualTotals) {
     o += `<div class="nutr-sum">
       <span><strong>${sumCal}</strong> cal</span>
@@ -864,38 +970,68 @@ function nutritionSection(k, log) {
   return o;
 }
 
-// ── HISTORY ────────────────────────────────────
-function history() {
-  const logs = DB.allLogs();
-  if (!logs.length) return `<div class="empty"><div class="ei">📅</div><p>No workouts logged yet.<br>Start today!</p></div>`;
-  let o = '<div class="hist-list">';
-  for (const { date: d, log } of logs) {
-    const dt = new Date(d + 'T12:00:00');
-    const w = W[dt.getDay()];
-    const cw = cycleWeek(dt);
-    const wd = w.weeks ? w.weeks[cw] : null;
-    const setsN = Object.values(log.sets||{}).reduce((a,s)=>a+s.length,0);
-    const hasRun = log.run?.saved;
-    const checks = Object.values(log.checks||{}).filter(Boolean).length;
-    const parts = [];
-    if (setsN)   parts.push(`${setsN} sets`);
-    if (hasRun)  parts.push(`${log.run.d||'?'}mi run`);
-    if (checks)  parts.push(`${checks} done`);
-    if (log.nutrition) {
-      const nn = log.nutrition;
-      if (nn.calories) parts.push(`${nn.calories}cal`);
-      if (nn.protein)  parts.push(`${nn.protein}p`);
-      if (nn.carbs)    parts.push(`${nn.carbs}c`);
-      if (nn.fat)      parts.push(`${nn.fat}f`);
-    }
-    o += `<div class="hist-item" data-a="goto" data-ds="${d}">
-      <div class="hist-date">${dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</div>
-      <div class="hist-theme">${w.icon} ${w.theme}${wd?`<span class="wk">· ${wd.title}</span>`:''}</div>
-      <div class="hist-sum">${parts.length?parts.join(' · '):'<em>No data logged</em>'}</div>
-      ${log.notes?`<div class="hist-note">"${log.notes.slice(0,70)}${log.notes.length>70?'…':''}"</div>`:''}
+// ── CALENDAR ──────────────────────────────────
+function calendar() {
+  const year = S.calYear;
+  const month = S.calMonth;
+  const todayStr = ds(new Date());
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  const firstDay = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  // Monday = 0, Sunday = 6
+  let startDow = firstDay.getDay();
+  startDow = startDow === 0 ? 6 : startDow - 1;
+
+  let o = `<div class="cal-wrap">
+    <div class="cal-hd">
+      <button data-a="cal-prev">◀</button>
+      <span>${monthNames[month]} ${year}</span>
+      <button data-a="cal-next">▶</button>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-dow">Mo</div><div class="cal-dow">Tu</div><div class="cal-dow">We</div>
+      <div class="cal-dow">Th</div><div class="cal-dow">Fr</div><div class="cal-dow">Sa</div><div class="cal-dow">Su</div>`;
+
+  // Empty cells before 1st
+  for (let i = 0; i < startDow; i++) {
+    o += `<div class="cal-cell empty"></div>`;
+  }
+
+  // Day cells
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d, 12, 0, 0);
+    const dateStr = ds(date);
+    const log = DB.getLog(dateStr);
+    const dayType = getDayType(date, log);
+    const w = W[dayType];
+    const active = hasLogData(log);
+    const isTd = dateStr === todayStr;
+    const isSwapSel = S.swapFirst === dateStr;
+    const isOvr = log.override !== undefined;
+
+    o += `<div class="cal-cell${isTd?' today':''}${isSwapSel?' swap-sel':''}" data-a="cal-day" data-ds="${dateStr}">
+      <span class="cal-num">${d}</span>
+      <span class="cal-dot ${w.cls}${active?' active':''}${isOvr?' overridden':''}"></span>
     </div>`;
   }
-  return o + '</div>';
+
+  o += `</div>`; // close cal-grid
+
+  // Swap mode bar
+  if (S.swapMode) {
+    o += `<div class="swap-bar active">
+      <span>${S.swapFirst ? '2. Now tap second day' : '1. Tap first day to swap'}</span>
+      <button data-a="swap-cancel">Cancel</button>
+    </div>`;
+  } else {
+    o += `<div class="swap-bar">
+      <button data-a="swap-start">🔄 Swap Days</button>
+    </div>`;
+  }
+
+  o += `</div>`; // close cal-wrap
+  return o;
 }
 
 // ── PROGRESS ───────────────────────────────────
@@ -918,7 +1054,6 @@ function progress() {
     </select>`;
 
   if (isNutr) {
-    // Nutrition trend chart
     const nHist = DB.nutrHistory();
     const fieldMap = { '__cal':'cal', '__pro':'pro', '__carb':'carb', '__fat':'fat' };
     const labelMap = { '__cal':'Calories', '__pro':'Protein (g)', '__carb':'Carbs (g)', '__fat':'Fat (g)' };
@@ -947,7 +1082,6 @@ function progress() {
       </div>`;
     }
   } else {
-    // Exercise progress chart (existing)
     const hist = S.progEx ? DB.exHistory(S.progEx) : [];
     if (!hist.length) {
       o += `<div class="empty"><div class="ei">📈</div><p>No data yet for<br><strong>${S.progEx}</strong></p></div>`;
@@ -1002,13 +1136,15 @@ function bind() {
   const $ = s => document.querySelectorAll(s);
 
   // tabs
-  $('[data-tab]').forEach(b => b.addEventListener('click', () => { S.tab = b.dataset.tab; render(); }));
+  $('[data-tab]').forEach(b => b.addEventListener('click', () => {
+    S.tab = b.dataset.tab; S.showPicker = false; render();
+  }));
 
   // date nav
   const prev = document.querySelector('[data-a="prev"]');
   const next = document.querySelector('[data-a="next"]');
-  if (prev) prev.addEventListener('click', () => { S.date.setDate(S.date.getDate()-1); S.form=null; render(); });
-  if (next) next.addEventListener('click', () => { S.date.setDate(S.date.getDate()+1); S.form=null; render(); });
+  if (prev) prev.addEventListener('click', () => { S.date.setDate(S.date.getDate()-1); S.form=null; S.showPicker=false; render(); });
+  if (next) next.addEventListener('click', () => { S.date.setDate(S.date.getDate()+1); S.form=null; S.showPicker=false; render(); });
 
   // toggle exercise form
   $('[data-a="form"]').forEach(b => b.addEventListener('click', () => {
@@ -1068,18 +1204,111 @@ function bind() {
     notes.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => DB.saveNotes(ds(S.date), notes.value), 400); });
   }
 
-  // history goto
-  $('[data-a="goto"]').forEach(el => el.addEventListener('click', () => {
-    S.date = new Date(el.dataset.ds + 'T12:00:00'); S.tab='today'; S.form=null; render();
-  }));
-
   // progress exercise select
   const sel = document.querySelector('[data-a="sel-ex"]');
   if (sel) sel.addEventListener('change', () => { S.progEx = sel.value; render(); });
 
+  // ── Calendar events ──
+
+  // Month navigation
+  const calPrev = document.querySelector('[data-a="cal-prev"]');
+  const calNext = document.querySelector('[data-a="cal-next"]');
+  if (calPrev) calPrev.addEventListener('click', () => {
+    S.calMonth--;
+    if (S.calMonth < 0) { S.calMonth = 11; S.calYear--; }
+    render();
+  });
+  if (calNext) calNext.addEventListener('click', () => {
+    S.calMonth++;
+    if (S.calMonth > 11) { S.calMonth = 0; S.calYear++; }
+    render();
+  });
+
+  // Calendar day clicks
+  $('[data-a="cal-day"]').forEach(cell => cell.addEventListener('click', () => {
+    const dateStr = cell.dataset.ds;
+    if (S.swapMode) {
+      if (!S.swapFirst) {
+        // First selection
+        S.swapFirst = dateStr;
+        render();
+      } else if (S.swapFirst !== dateStr) {
+        // Second selection — perform swap
+        const d1 = new Date(S.swapFirst + 'T12:00:00');
+        const d2 = new Date(dateStr + 'T12:00:00');
+        const l1 = DB.getLog(S.swapFirst);
+        const l2 = DB.getLog(dateStr);
+        const type1 = getDayType(d1, l1);
+        const type2 = getDayType(d2, l2);
+        // Set overrides
+        l1.override = type2;
+        l2.override = type1;
+        // Clean up unnecessary overrides (if override matches natural day)
+        if (l1.override === d1.getDay()) delete l1.override;
+        if (l2.override === d2.getDay()) delete l2.override;
+        DB.save(S.swapFirst, l1);
+        DB.save(dateStr, l2);
+        S.swapMode = false;
+        S.swapFirst = null;
+        render();
+      }
+    } else {
+      // Normal click — navigate to that day
+      S.date = new Date(dateStr + 'T12:00:00');
+      S.tab = 'today';
+      S.form = null;
+      S.showPicker = false;
+      render();
+    }
+  }));
+
+  // Swap mode start / cancel
+  const swapStart = document.querySelector('[data-a="swap-start"]');
+  if (swapStart) swapStart.addEventListener('click', () => {
+    S.swapMode = true; S.swapFirst = null; render();
+  });
+  const swapCancel = document.querySelector('[data-a="swap-cancel"]');
+  if (swapCancel) swapCancel.addEventListener('click', () => {
+    S.swapMode = false; S.swapFirst = null; render();
+  });
+
+  // ── Workout picker events ──
+
+  // Toggle picker
+  const togglePicker = document.querySelector('[data-a="toggle-picker"]');
+  if (togglePicker) togglePicker.addEventListener('click', () => {
+    S.showPicker = !S.showPicker; render();
+  });
+
+  // Pick a workout type
+  $('[data-a="pick-workout"]').forEach(item => item.addEventListener('click', () => {
+    const day = parseInt(item.dataset.day);
+    const k = ds(S.date);
+    const l = DB.getLog(k);
+    // Set override (or remove if it matches the natural day)
+    if (day === S.date.getDay()) {
+      delete l.override;
+    } else {
+      l.override = day;
+    }
+    DB.save(k, l);
+    S.showPicker = false;
+    render();
+  }));
+
+  // Reset workout to default
+  const resetWorkout = document.querySelector('[data-a="reset-workout"]');
+  if (resetWorkout) resetWorkout.addEventListener('click', () => {
+    const k = ds(S.date);
+    const l = DB.getLog(k);
+    delete l.override;
+    DB.save(k, l);
+    S.showPicker = false;
+    render();
+  });
+
   // ── Nutrition events ──
 
-  // Calorie/protein/carb/fat manual input (debounced)
   ['ncal','npro','ncarb','nfat'].forEach(id => {
     const el = document.getElementById(id);
     if (el && !el.readOnly) {
@@ -1114,7 +1343,7 @@ function bind() {
   const foodInput = document.getElementById('mfood');
   const foodResults = document.getElementById('food-results');
   if (foodInput && foodResults) {
-    let baseFood = null; // selected food from database (for qty recalc)
+    let baseFood = null;
 
     foodInput.addEventListener('input', () => {
       const q = foodInput.value.trim().toLowerCase();
@@ -1131,7 +1360,6 @@ function bind() {
       ).join('');
       foodResults.style.display = 'block';
 
-      // Attach click handlers to results
       foodResults.querySelectorAll('.food-item').forEach((item, idx) => {
         item.addEventListener('click', () => {
           const f = matches[idx];
@@ -1148,12 +1376,10 @@ function bind() {
       });
     });
 
-    // Close dropdown on blur (with delay for click)
     foodInput.addEventListener('blur', () => {
       setTimeout(() => { foodResults.style.display = 'none'; }, 200);
     });
 
-    // Qty change → recalculate macros from base food
     const mqty = document.getElementById('mqty');
     if (mqty) mqty.addEventListener('input', () => {
       if (!baseFood) return;
@@ -1179,7 +1405,6 @@ function bind() {
     const n = l.nutrition || { calories:null, protein:null, carbs:null, fat:null, water:0, meals:[], manualTotals:true };
     n.meals = n.meals || [];
     n.meals.push({ name, cal, pro, carb, fat, qty, ts: Date.now() });
-    // Auto-sum from meals
     n.manualTotals = false;
     n.calories = n.meals.reduce((a,m) => a + (m.cal||0), 0);
     n.protein = n.meals.reduce((a,m) => a + (m.pro||0), 0);
@@ -1188,7 +1413,6 @@ function bind() {
     l.nutrition = n; DB.save(k, l); S.form = null; render();
   });
 
-  // Enter on food name or fat field → submit
   const mfField = document.getElementById('mf');
   if (mfField) mfField.addEventListener('keydown', e => { if (e.key==='Enter') document.querySelector('[data-a="log-meal"]')?.click(); });
 
